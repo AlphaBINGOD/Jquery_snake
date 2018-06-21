@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/base.css">
+    <title>贪食蛇</title>
+    <style>
+        .game-box{display: flex; width: 1050px; margin: 20px auto; border: 10px solid #153170;}
+        .frame{display: flex; flex-wrap: wrap; width: 800px; height: 500px; margin:20px; border: 5px solid #ccc; }
+        .message{width: 170px; height: 500px; margin: 20px 20px 20px 0; border: 5px solid #ccc; text-align: center;}
+        .message .title{width: 100%; height: 60px; font: bold 30px/60px "SimHei"}
+        .message .detail ul li{width: 100%; height:30px; margin:20px 0;font: bold 20px/30px "";}
+        .part{box-sizing: border-box; width: 20px; height: 20px; border: 1px solid #fff; background: #ddd; border-radius: 50%;}
+    </style>
+</head>
+<body>
+    <div class="game-box">
+        <div class="frame">
+        </div>
+
+        <div class="message">
+            <div class="title">贪食蛇</div>
+            <div class="setting">
+                <h2>模式选择</h2>
+                <input type="radio" name="model" check="checked">不死模式 <br>
+                <input type="radio" name="model">障碍模式
+            </div>
+            <div class="detail">
+                <ul>
+                    <li>分数：<span>0000</span></li>
+                    <li>速度：<span>10</span></li>
+                    <li>时间：<span>0</span></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+<script src="js/jquery.min.js"></script>
+    <script src="js/myJs.js"></script>
+<script>
+
+    //计算获得游戏所需的数据，减少计算量
+
+    $(".frame").attr("frameWidth",function () {
+        return parseInt($('.frame').css("width"))/20;
+    });
+    $(".frame").attr("frameHeight",function () {
+        return parseInt($('.frame').css("height"))/20;
+    });
+    $(".frame").attr("framePoint",function () {
+        return $(".frame").attr("frameWidth") * $(".frame").attr("frameHeight");
+    });
+    console.log($(".frame").attr("frameWidth"),$(".frame").attr("frameHeight"),$(".frame").attr("framePoint"));
+
+    var food = {
+        X : Math.ceil(Math.random() * $(".frame").attr("frameWidth"))-1,
+        Y : Math.ceil(Math.random() * $(".frame").attr("frameHeight"))-1,
+        color : "red"
+    };
+    console.log(food);
+
+    /*生成游戏面板-----------------------------------------------------------------------------------------------*/
+    //获得活动区域尺寸，计算出横纵格子数；
+    //每个小格子是一个10px的格子
+    var date1 = new  Date(Date.now()).getTime();
+    for(var i = 0; i < (parseFloat($(".frame").css("width")) * parseFloat($(".frame").css("height"))/ 400); i++){
+        $(".frame").append("<div class='part'></div>");
+    }
+    var date2 = new Date(Date.now()).getTime();
+    console.log(milliTransition(date2-date1,"second"));
+    /*-----------------------------------------------------------------------------------------------------------*/
+    /*初始化游戏数据------------------------------------------------------------------------------------------------*/
+    //创建一个包含10个元素的数组
+    var snakeBodyArr = new Array(10);
+    //为每个元素赋值
+    for(var j = 0; j < snakeBodyArr.length ; j++) {
+        snakeBodyArr[j] = {
+            X : 20 + snakeBodyArr.length - 1 - j,
+            Y : 15,
+            color :  "#153170"
+        };
+        displayXY('.frame', snakeBodyArr[j], true);
+    };
+    /*------------------------------------------------------------------------------------------------------------*/
+
+    /*添加按键事件---------------------------------------------------------------------------------------------------*/
+    //按下按键后，需要记录按键时的坐标点位置与按键方向，也就是保存一个点的信息，保存到一个数组内，这个数组，用于尾部运动调整方向。
+    //新建一个数组
+    var dir = "right";
+    $(document).keydown(
+        function (e) {
+            e = e || event;
+            switch(e.keyCode){
+                case 37:dir = "left" ;break;  //左箭头
+                case 38:dir = "up"   ;break;  //上箭头
+                case 39:dir = "right";break;  //右箭头
+                case 40:dir = "down" ;break;  //下箭头
+        }}
+    );
+    /*-------------------------------------------------------------------------------------------------------------*/
+    //随机生成食物
+    //生成食物，只是随机产生一个点的位置
+    displayXY('.frame',food,true);
+    foodNum = 0;
+    foodflag = false;
+    speed = 100;
+    var score = 0;
+    update('.detail ul li:eq(0) span','.detail ul li:eq(1) span',score, 101-speed);
+    /*定时更新游戏画面------------------------------------------------------------------------------------------------*/
+    var interval = setTimeout(function(){move('.frame', snakeBodyArr, dir, food, function () {
+            foodNum++;
+            score +=10;
+            if(foodNum %2 === 0){
+                speed -= 1;
+
+            }
+
+            foodflag = false;
+            var superposition = false;
+            while(!foodflag){
+                food = creatFood('.frame');
+                superposition = false;
+                //默认没有重合，但是假如检测出重合，则设置为true
+                for(j=0;j<snakeBodyArr.length;j++){
+                    num = 0;
+                    for (var k in snakeBodyArr[j]) {
+                        if(food[k] === snakeBodyArr[j][k]){
+                            num++;
+                            if(num===2){ //说明这个食物点与蛇身体重合了，需要重新生成食物
+                               superposition = true;
+                               console.log("新食物的位置有问题！");
+                            }
+                        }
+                    }
+
+                }
+                if(superposition === false){
+                    foodflag = true;
+                }
+            }
+
+            displayXY('.frame',food,true);
+
+            update('.detail ul li:eq(0) span','.detail ul li:eq(1) span',score, 101-speed);
+        }
+    );
+        setTimeout(arguments.callee,speed);}
+        ,speed);
+    var second = 0;
+    var minute = 0;
+    var secondDis = 0;
+    var minuteDis = 0;
+    setInterval(function () {
+        second +=1;
+        if(second === 60){
+            second = 0;
+            minute++;
+        }
+        if(second < 10){
+            secondDis = '0' + second;
+        }
+        else{
+            secondDis = second;
+        }
+        if(minute < 10){
+            minuteDis = '0' + minute;
+        }
+        else{
+            minuteDis = minute;
+        }
+        $('.detail ul li:eq(2) span').text(minuteDis+":"+secondDis);
+    },1000)
+    /*-------------------------------------------------------------------------------------------------------------*/
+</script>
+</body>
+</html>
